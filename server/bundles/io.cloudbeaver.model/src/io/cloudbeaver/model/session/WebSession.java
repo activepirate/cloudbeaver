@@ -329,6 +329,10 @@ public class WebSession extends AbstractSessionPersistent
 
     private void loadProjects() {
         WebUser user = userContext.getUser();
+        if (user == null && DBWorkbench.isDistributed()) {
+            // No anonymous mode in distributed apps
+            return;
+        }
         refreshAccessibleConnectionIds();
         try {
             RMController controller = application.getResourceController(this, getSecurityController());
@@ -409,12 +413,10 @@ public class WebSession extends AbstractSessionPersistent
     @NotNull
     private Set<String> readAccessibleConnectionIds() {
         WebUser user = getUser();
-        String subjectId = user == null ?
-            application.getAppConfiguration().getAnonymousUserTeam() : user.getUserId();
 
         try {
             return getSecurityController()
-                .getAllAvailableObjectsPermissions(subjectId, SMObjects.DATASOURCE)
+                .getAllAvailableObjectsPermissions(SMObjects.DATASOURCE)
                 .stream()
                 .map(SMObjectPermissions::getObjectId)
                 .collect(Collectors.toSet());
@@ -532,7 +534,7 @@ public class WebSession extends AbstractSessionPersistent
                     if (!application.isConfigurationMode()) {
                         // Update record
                         //TODO use generate id from SMController
-                        getSecurityController().updateSession(this.userContext.getSmSessionId(), getUserId(), getSessionParameters());
+                        getSecurityController().updateSession(this.userContext.getSmSessionId(), getSessionParameters());
                     }
                 }
             } catch (Exception e) {

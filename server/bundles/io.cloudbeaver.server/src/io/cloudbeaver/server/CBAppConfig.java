@@ -20,12 +20,12 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import io.cloudbeaver.model.app.BaseAuthWebAppConfiguration;
 import io.cloudbeaver.model.app.WebAuthConfiguration;
+import io.cloudbeaver.registry.WebAuthProviderDescriptor;
+import io.cloudbeaver.registry.WebAuthProviderRegistry;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.model.navigator.DBNBrowseSettings;
 import org.jkiss.dbeaver.registry.DataSourceNavigatorSettings;
-import org.jkiss.dbeaver.registry.auth.AuthProviderDescriptor;
-import org.jkiss.dbeaver.registry.auth.AuthProviderRegistry;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.LinkedHashMap;
@@ -171,8 +171,8 @@ public class CBAppConfig extends BaseAuthWebAppConfiguration implements WebAuthC
     }
 
     public String[] getAllAuthProviders() {
-        return AuthProviderRegistry.getInstance().getAuthProviders()
-            .stream().map(AuthProviderDescriptor::getId).toArray(String[]::new);
+        return WebAuthProviderRegistry.getInstance().getAuthProviders()
+            .stream().map(WebAuthProviderDescriptor::getId).toArray(String[]::new);
     }
 
     public DBNBrowseSettings getDefaultNavigatorSettings() {
@@ -218,12 +218,16 @@ public class CBAppConfig extends BaseAuthWebAppConfiguration implements WebAuthC
     }
 
     public <T> T getResourceQuota(String quotaId) {
-        return (T) resourceQuotas.get(quotaId);
+        Object quota = resourceQuotas.get(quotaId);
+        if (quota instanceof String) {
+            quota = CommonUtils.toDouble(quota);
+        }
+        return (T) quota;
     }
 
     public <T> T getResourceQuota(String quotaId, T defaultValue) {
         if (resourceQuotas.containsKey(quotaId)) {
-            return (T) resourceQuotas.get(quotaId);
+            return (T) getResourceQuota(quotaId);
         } else {
             return defaultValue;
         }

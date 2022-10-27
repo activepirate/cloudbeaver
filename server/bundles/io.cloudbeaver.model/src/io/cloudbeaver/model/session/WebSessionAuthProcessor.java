@@ -23,6 +23,8 @@ import io.cloudbeaver.DBWebException;
 import io.cloudbeaver.auth.SMAuthProviderExternal;
 import io.cloudbeaver.model.app.WebAuthConfiguration;
 import io.cloudbeaver.model.user.WebUser;
+import io.cloudbeaver.registry.WebAuthProviderDescriptor;
+import io.cloudbeaver.registry.WebAuthProviderRegistry;
 import io.cloudbeaver.utils.WebAppUtils;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
@@ -31,8 +33,6 @@ import org.jkiss.dbeaver.model.auth.SMAuthInfo;
 import org.jkiss.dbeaver.model.auth.SMAuthProvider;
 import org.jkiss.dbeaver.model.auth.SMSession;
 import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.registry.auth.AuthProviderDescriptor;
-import org.jkiss.dbeaver.registry.auth.AuthProviderRegistry;
 import org.jkiss.utils.CommonUtils;
 
 import java.time.OffsetDateTime;
@@ -127,7 +127,7 @@ public class WebSessionAuthProcessor {
                 if (authProviderExternal != null && !configMode && !alreadyLoggedIn) {
                     // We may need to associate new credentials with active user
                     if (linkWithActiveUser) {
-                        securityController.setUserCredentials(userId, authProviderDescriptor.getId(), authAttrs);
+                        securityController.setUserCredentials(authProviderDescriptor.getId(), authAttrs);
                     }
                 }
 
@@ -164,7 +164,7 @@ public class WebSessionAuthProcessor {
                 if (!configMode && securityController.getUserPermissions(userId).isEmpty()) {
                     throw new DBWebException("Access denied (no permissions)");
                 }
-                if (!configMode && !securityController.getUserById(userId).isEnabled()) {
+                if (!configMode && !securityController.getCurrentUser().isEnabled()) {
                     throw new DBWebException("User account is locked");
                 }
 
@@ -192,8 +192,8 @@ public class WebSessionAuthProcessor {
         }
     }
 
-    private AuthProviderDescriptor getAuthProvider(String providerId) throws DBWebException {
-        AuthProviderDescriptor authProvider = AuthProviderRegistry.getInstance().getAuthProvider(providerId);
+    private WebAuthProviderDescriptor getAuthProvider(String providerId) throws DBWebException {
+        WebAuthProviderDescriptor authProvider = WebAuthProviderRegistry.getInstance().getAuthProvider(providerId);
         if (authProvider == null) {
             throw new DBWebException("Invalid auth provider '" + providerId + "'");
         }

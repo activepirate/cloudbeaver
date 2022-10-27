@@ -134,6 +134,7 @@ type ServerConfig {
     configurationMode: Boolean
     developmentMode: Boolean
     redirectOnFederatedAuth: Boolean
+    distributed: Boolean!
 
     enabledFeatures: [ID!]!
     enabledAuthProviders: [ID!]!
@@ -387,7 +388,9 @@ type LogEntry {
 }
 
 enum CBEventType {
-    cb_config_changed
+    cb_config_changed,
+    cb_datasource_updated,
+    cb_rm_resource_updated
 }
 
 type CBEvent {

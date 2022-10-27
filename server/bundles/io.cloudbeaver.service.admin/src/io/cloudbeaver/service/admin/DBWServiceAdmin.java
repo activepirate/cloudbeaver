@@ -24,7 +24,7 @@ import io.cloudbeaver.model.WebConnectionConfig;
 import io.cloudbeaver.model.WebConnectionInfo;
 import io.cloudbeaver.model.WebPropertyInfo;
 import io.cloudbeaver.model.session.WebSession;
-import io.cloudbeaver.model.user.WebAuthProviderConfiguration;
+import io.cloudbeaver.registry.WebAuthProviderConfiguration;
 import io.cloudbeaver.service.DBWService;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -33,6 +33,7 @@ import org.jkiss.dbeaver.model.security.SMDataSourceGrant;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Web service API
@@ -59,6 +60,9 @@ public interface DBWServiceAdmin extends DBWService {
         @NotNull Boolean enabled,
         @Nullable String authRole
     ) throws DBWebException;
+
+    @WebAction(requirePermissions = DBWConstants.PERMISSION_ADMIN)
+    Set<String> listAuthRoles();
 
     @WebAction(requirePermissions = DBWConstants.PERMISSION_ADMIN)
     boolean deleteUser(@NotNull WebSession webSession, String userName) throws DBWebException;
@@ -169,18 +173,27 @@ public interface DBWServiceAdmin extends DBWService {
 
     @WebAction(requirePermissions = DBWConstants.PERMISSION_ADMIN)
     SMDataSourceGrant[] getSubjectConnectionAccess(@NotNull WebSession webSession, @NotNull String subjectId) throws DBWebException;
+
     @WebAction(requirePermissions = DBWConstants.PERMISSION_ADMIN)
-    boolean setSubjectConnectionAccess(@NotNull WebSession webSession, @NotNull String subjectId, @NotNull List<String> connections) throws DBWebException;
+    boolean setSubjectConnectionAccess(@NotNull WebSession webSession, @NotNull String subjectId, @NotNull List<String> connections) throws
+        DBWebException;
 
     ////////////////////////////////////////////////////////////////////
     // User meta parameters
 
     @WebAction(requirePermissions = DBWConstants.PERMISSION_ADMIN)
-    WebPropertyInfo saveUserMetaParameter(WebSession webSession, String id, String displayName, String description, Boolean required) throws DBWebException;
+    WebPropertyInfo saveUserMetaParameter(WebSession webSession, String id, String displayName, String description, Boolean required) throws
+        DBWebException;
+
     @WebAction(requirePermissions = DBWConstants.PERMISSION_ADMIN)
     Boolean deleteUserMetaParameter(WebSession webSession, String id) throws DBWebException;
+
     @WebAction(requirePermissions = DBWConstants.PERMISSION_ADMIN)
-    Boolean setUserMetaParameterValues(WebSession webSession, String userId, Map<String, Object> parameters) throws DBWebException;
+    Boolean setUserMetaParameterValues(WebSession webSession, String userId, Map<String, String> parameters) throws DBWebException;
     @WebAction(requirePermissions = DBWConstants.PERMISSION_ADMIN)
     Boolean enableUser(WebSession webSession, String userId, Boolean enabled) throws DBWebException;
+
+    @WebAction(requirePermissions = DBWConstants.PERMISSION_ADMIN)
+    Boolean setUserAuthRole(WebSession webSession, String userId, String authRole) throws DBWebException;
+
 }

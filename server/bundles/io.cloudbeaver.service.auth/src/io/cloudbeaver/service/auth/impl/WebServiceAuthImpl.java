@@ -17,6 +17,7 @@
 package io.cloudbeaver.service.auth.impl;
 
 import io.cloudbeaver.DBWebException;
+import io.cloudbeaver.WebServiceUtils;
 import io.cloudbeaver.auth.provider.local.LocalAuthProvider;
 import io.cloudbeaver.model.WebPropertyInfo;
 import io.cloudbeaver.model.session.WebAuthInfo;
@@ -24,6 +25,8 @@ import io.cloudbeaver.model.session.WebSession;
 import io.cloudbeaver.model.session.WebSessionAuthProcessor;
 import io.cloudbeaver.model.user.WebAuthProviderInfo;
 import io.cloudbeaver.model.user.WebUser;
+import io.cloudbeaver.registry.WebAuthProviderDescriptor;
+import io.cloudbeaver.registry.WebAuthProviderRegistry;
 import io.cloudbeaver.registry.WebUserProfileRegistry;
 import io.cloudbeaver.server.CBApplication;
 import io.cloudbeaver.service.auth.DBWServiceAuth;
@@ -35,11 +38,13 @@ import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.Log;
 import org.jkiss.dbeaver.model.auth.SMAuthInfo;
 import org.jkiss.dbeaver.model.auth.SMAuthStatus;
+import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
 import org.jkiss.dbeaver.model.security.SMController;
+import org.jkiss.dbeaver.model.security.SMSubjectType;
 import org.jkiss.dbeaver.model.security.user.SMUser;
-import org.jkiss.dbeaver.registry.auth.AuthProviderRegistry;
 import org.jkiss.utils.CommonUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -142,7 +147,7 @@ public class WebServiceAuthImpl implements DBWServiceAuth {
         }
         try {
             // Read user from security controller. It will also read meta parameters
-            SMUser userWithDetails = webSession.getSecurityController().getUserById(webSession.getUser().getUserId());
+            SMUser userWithDetails = webSession.getSecurityController().getCurrentUser();
             if (userWithDetails != null) {
                 // USer not saved yet. This may happen in easy config mode
                 var webUser = new WebUser(userWithDetails);
@@ -158,7 +163,7 @@ public class WebServiceAuthImpl implements DBWServiceAuth {
 
     @Override
     public WebAuthProviderInfo[] getAuthProviders() {
-        return AuthProviderRegistry.getInstance().getAuthProviders()
+        return WebAuthProviderRegistry.getInstance().getAuthProviders()
             .stream().map(WebAuthProviderInfo::new)
             .toArray(WebAuthProviderInfo[]::new);
     }
@@ -177,19 +182,33 @@ public class WebServiceAuthImpl implements DBWServiceAuth {
 
     @Override
     public WebPropertyInfo[] listUserProfileProperties(@NotNull WebSession webSession) {
-        return WebUserProfileRegistry.getInstance().getProperties().stream()
+        List<DBPPropertyDescriptor> props = new ArrayList<>();
+
+        // First add user profile properties
+        props.addAll(WebUserProfileRegistry.getInstance().getProperties());
+
+        // Add metas from enabled auth providers
+        for (WebAuthProviderDescriptor ap : WebServiceUtils.getEnabledAuthProviders()) {
+            List<DBPPropertyDescriptor> metaProps = ap.getMetaProperties(SMSubjectType.user);
+            if (!CommonUtils.isEmpty(metaProps)) {
+                props.addAll(metaProps);
+            }
+        }
+
+        return props.stream()
             .map(p -> new WebPropertyInfo(webSession, p, null))
             .toArray(WebPropertyInfo[]::new);
     }
 
     @Override
-    public boolean setUserConfigurationParameter(@NotNull WebSession webSession, @NotNull String name, @Nullable String value) throws DBWebException {
+    public boolean setUserConfigurationParameter(
+        @NotNull WebSession webSession,
+        @NotNull String name,
+        @Nullable String value
+    ) throws DBWebException {
         webSession.addInfoMessage("Set user parameter - " + name);
         try {
-            webSession.getSecurityController().setUserParameter(
-                webSession.getUser().getUserId(),
-                name,
-                value);
+            webSession.getSecurityController().setUserParameter(name, value);
             return true;
         } catch (DBException e) {
             throw new DBWebException("Error setting user parameter", e);
